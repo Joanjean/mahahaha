@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>☀️마한클 네버스탑🔥</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root { 
+            --aurora-bg: linear-gradient(215deg, #d4fc79 0%, #96e6a1 20%, #84fab0 40%, #8fd3f4 60%, #a18cd1 80%, #fbc2eb 100%);
+            --pitch-dark: #4a148c;
+            --pitch-light: #6a1b9a;
+            --accent: #fffb00; 
+            --white: #ffffff; 
+            --bg: #f8f9fa; 
+            --gray: #e0e0e0; 
+        }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: #f0f0f0; margin: 0; display: flex; justify-content: center; overflow-x: hidden; }
+        
+        .app-container { width: 100%; max-width: 480px; min-height: 100vh; background: var(--white); display: none; flex-direction: column; position: relative; }
+        
+        /* ⚽️ 랜딩 화면 */
+        #landingScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--aurora-bg); background-size: 400% 400%;
+            animation: auroraMove 10s ease infinite; z-index: 3000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            overflow: hidden; transition: opacity 0.8s ease-out;
+        }
+        @keyframes auroraMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        .ball-container { position: relative; width: 100%; height: 100px; display: flex; justify-content: center; }
+        .rolling-ball { 
+            font-size: 60px; position: absolute; left: -100px; 
+            animation: rollAction 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
+        }
+        .landing-text { 
+            color: #fff; font-size: 22px; font-weight: 900; margin-top: 30px; 
+            opacity: 0; animation: fadeIn 1s 1.2s forwards; 
+            text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        /* 프로필 설정 오버레이 */
+        #profileOverlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: var(--aurora-bg); background-size: 400% 400%;
+            z-index: 2000; display: none; justify-content: center; align-items: center; 
+            backdrop-filter: blur(10px); 
+        }
+        .profile-card { background: white; padding: 25px; border-radius: 24px; width: 85%; max-width: 340px; text-align: center; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .emoji-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 12px; border-radius: 12px; margin-bottom: 20px; background: #fafafa; }
+        .emoji-item { font-size: 24px; cursor: pointer; padding: 8px 0; border-radius: 8px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .emoji-item.selected { background: #e1bee7; transform: scale(1.1); }
+
+        /* 공통 스타일 */
+        .home-header, .header-card { background: var(--aurora-bg); background-size: 200% 200%; padding: 40px 20px; color: white; border-radius: 0 0 30px 30px; }
+        .weather-info { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
+        .temp { font-size: 2.5rem; font-weight: 900; }
+        .section-title { font-size: 18px; font-weight: 800; margin: 25px 20px 10px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        .todo-item-card { background: #fff; border: 1px solid #eee; border-radius: 15px; padding: 15px; margin: 0 20px 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .mini-feed-card { background: #fafafa; border-radius: 12px; padding: 12px; margin: 0 20px 8px; display: flex; align-items: center; gap: 10px; border-left: 4px solid #a18cd1; }
+        .rank-card { background: #fff; border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .rank-title { font-size: 16px; font-weight: 800; color: #4a148c; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .rank-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f9f9f9; }
+        .rank-badge { width: 24px; height: 24px; border-radius: 50%; background: var(--gray); color: white; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .rank-item:nth-child(1) .rank-badge { background: #FFD700; }
+        .rank-item:nth-child(2) .rank-badge { background: #C0C0C0; }
+        .rank-item:nth-child(3) .rank-badge { background: #CD7F32; }
+        .rank-info { flex: 1; margin-left: 12px; font-size: 14px; font-weight: 600; }
+        .rank-score { font-size: 13px; color: #7b1fa2; font-weight: bold; }
+        .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .profile-trigger { display: flex; align-items: center; gap: 8px; cursor: pointer; background: rgba(255,255,255,0.3); padding: 6px 16px; border-radius: 30px; font-weight: bold; }
+        
+        #sideMenu { position: absolute; top: 70px; left: 15px; width: 200px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 100; overflow: hidden; }
+        .menu-item { padding: 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; cursor: pointer; }
+        .view-section { display: none; padding: 0; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+        .content-padding { padding: 20px; }
+        .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-box { background: rgba(255,255,255,0.2); border-radius: 12px; padding: 10px 0; text-align: center; cursor: pointer; }
+        .day-box.active { background: var(--white); color: #7b1fa2; font-weight: bold; }
+        .train-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 20px; padding: 18px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.04); }
+        .dot-container { display: flex; gap: 6px; margin: 12px 0; }
+        .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--gray); cursor: pointer; }
+        .dot.active { background: #8fd3f4; border-color: #8fd3f4; }
+        .comment-section { border-top: 1px solid #f5f5f5; padding-top: 12px; margin-top: 10px; }
+        .comment-item { font-size: 0.85rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+        @keyframes rollAction { 0% { left: -100px; transform: rotate(0deg); } 100% { left: calc(50% - 30px); transform: rotate(720deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div id="landingScreen">
+    <div class="ball-container"><div class="rolling-ball">⚽️</div></div>
+    <div class="landing-text">JUST DO IT.<br>MAPO ROAFERS</div>
+</div>
+
+<div id="profileOverlay">
+    <div class="profile-card">
+        <h3 id="modalTitle">🏃‍♀️ 프로필 설정</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">나를 잘 나타내는 이모지를 골라주세요!</p>
+        <input type="text" id="nickInput" onkeypress="if(event.keyCode==13) saveProfile()" placeholder="닉네임 입력" maxlength="6" style="width:90%; padding:12px; margin-bottom:15px; border-radius:10px; border:1px solid #ddd; text-align:center; font-size:16px;">
+        <div id="emojiPicker" class="emoji-picker"></div>
+        <button onclick="saveProfile()" style="width:100%; height:55px; background:linear-gradient(to right, #a18cd1, #fbc2eb); color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; font-size:16px;">저장하고 시작하기</button>
+    </div>
+</div>
+
+<div class="app-container" id="mainApp">
+    <main id="homeView" class="view-section active">
+        <div class="home-header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div id="todayDate" style="font-size: 1rem; font-weight: bold;">--년 --월 --일</div>
+                <div onclick="toggleMenu()" style="cursor:pointer; background:rgba(255,255,255,0.3); padding:6px 14px; border-radius:20px; font-size:13px; font-weight:bold;">메뉴</div>
+            </div>
+            <div class="weather-info">
+                <div id="weatherIcon" style="font-size: 3rem;">☀️</div>
+                <div><div class="temp" id="currentTemp">--°</div><div id="weatherDesc" style="font-weight: 600;">날씨 로딩 중...</div></div>
+            </div>
+        </div>
+        <div class="section-title"><span>📅 나의 훈련 일정</span><button onclick="switchView('todo')" style="background:none; border:none; color:#7b1fa2; font-weight:bold; font-size:12px;">전체보기</button></div>
+        <div id="todoPreviewContainer"></div>
+        <div class="section-title" style="margin-top:10px;"><span>🔥 친구들의 훈련</span><button onclick="switchView('feed')" style="background:none; border:none; color:#7b1fa2; font-weight:bold; font-size:12px;">더보기</button></div>
+        <div id="homeFeedContainer"></div>
+        <div style="height:30px;"></div>
+    </main>
+
+    <main id="todoView" class="view-section">
+        <header class="header-card">
+            <div class="user-bar">
+                <div class="profile-trigger" onclick="toggleMenu()"><span id="myEmoji">⚽️</span> <span id="myNick">닉네임</span></div>
+                <div onclick="switchView('home')" style="cursor:pointer; font-weight:bold; background:rgba(255,255,255,0.3); padding:6px 14px; border-radius:20px; font-size:13px;">🏠 HOME</div>
+            </div>
+            <div id="calendarArea" class="week-grid"></div>
+        </header>
+        <div class="content-padding">
+            <h4 id="dateLabel" style="color:#4a148c; margin-top:0;">📅 나의 훈련 일정</h4>
+            <div style="display:flex; gap:8px; margin-bottom:20px;">
+                <input type="text" id="trainInput" onkeypress="if(event.keyCode==13) pushTraining()" placeholder="오늘의 훈련은?" style="flex:1; padding:12px; border:1px solid #ddd; border-radius:10px;">
+                <button onclick="pushTraining()" style="background:#a18cd1; color:white; border:none; border-radius:10px; padding:0 15px; font-weight:bold;">등록</button>
+            </div>
+            <div id="trainingContainer"></div>
+        </div>
+    </main>
+
+    <main id="feedView" class="view-section">
+        <div class="header-card" style="padding: 20px;"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:bold;">👀 친구들 엿보기</span><span onclick="switchView('home')" style="cursor:pointer; background:rgba(255,255,255,0.3); padding:6px 14px; border-radius:20px; font-size:13px;">🏠</span></div></div>
+        <div id="feedContainer" class="content-padding"></div>
+    </main>
+
+    <main id="rankView" class="view-section">
+        <div class="header-card" style="padding: 20px;"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:bold;">🏆 명예의 전당</span><span onclick="switchView('home')" style="cursor:pointer; background:rgba(255,255,255,0.3); padding:6px 14px; border-radius:20px; font-size:13px;">🏠</span></div></div>
+        <div class="content-padding">
+            <div class="rank-card"><div class="rank-title">🔥 훈련계획왕</div><div id="planRankList">계산 중...</div></div>
+            <div class="rank-card"><div class="rank-title">⭐ 훈련달성왕</div><div id="scoreRankList">계산 중...</div></div>
+            <div class="rank-card"><div class="rank-title">💬 댓글응원왕</div><div id="commentRankList">계산 중...</div></div>
+        </div>
+    </main>
+
+    <div id="sideMenu">
+        <div class="menu-item" onclick="switchView('home')">🏠 홈으로 </div>
+        <div class="menu-item" onclick="switchView('todo')">📅 나의 훈련</div>
+        <div class="menu-item" onclick="switchView('feed')">👀 친구들 훈련</div>
+        <div class="menu-item" onclick="switchView('rank')">🏆 명예의 전당</div>
+        <div class="menu-item" onclick="openProfileEdit()">⚙️ 프로필 수정</div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCCUWntonGOrv9_7pMODamJEf2hFwCex5I",
+        authDomain: "maha-trainee.firebaseapp.com",
+        databaseURL: "https://maha-trainee-default-rtdb.firebaseio.com",
+        projectId: "maha-trainee",
+        storageBucket: "maha-trainee.firebasestorage.app",
+        messagingSenderId: "474313055531",
+        appId: "1:474313055531:web:a7779782c1d196e06bb96e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let user = JSON.parse(localStorage.getItem('futsal_user'));
+    let selectedDate = new Date().toISOString().split('T')[0];
+    let chosenEmoji = "⚽️";
+    
+    const emojis = ["🏃‍♀️","🏋️‍♀️","🚴‍♂️","🚵‍♀️","🚵‍♂️","🤸‍♀️","🧘‍♀️","🏊‍♀️","🤽‍♀️","⛹️‍♀️","🏄‍♀️","🧗‍♀️","⛷️","🏂","🏌️‍♀️","🤺","🏇","⛸️","🤼‍♀️","🤼‍♂️","🤸","🏋️","🧘","🤺","⛹️","🏊","🚣","🏄","🚴","🚵","🤾‍♀️","🤾‍♂️","🏌️","🏇","😀","😃","😄","😁","😆","😅","😂","🤣","☺️","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","😷","🤒","🤕","🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🍭","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦢","🦉","🦚","🦜","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐞","🐜","🦟","🦗","🕷️","🕸️","🐢","🐍","🦎","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🐊","🐅","🐆","🦓","🦍","🦧","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐩","🐈","🐓","🦃","🕊️","🐇","🐁","🐀","🐿️","🦔","🐾","🐉","🐲","⚽️","👟","🔥","🏆","🥇","🥊","🥋","👽","👻","💩","🧤","❤️","👄","✨","⚡️","🌟","⭐","💪","🌈","🍕","🍔","🍦","🚀"];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initEmojiPicker();
+        const landing = document.getElementById('landingScreen');
+        setTimeout(() => {
+            landing.style.opacity = '0';
+            setTimeout(() => {
+                landing.style.display = 'none';
+                checkUserStatus();
+            }, 800);
+        }, 3200);
+    });
+
+    function checkUserStatus() {
+        if(!user || !user.uid) {
+            document.getElementById('profileOverlay').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+        } else {
+            document.getElementById('mainApp').style.display = 'flex';
+            updateUI();
+        }
+    }
+
+    function saveProfile() {
+        const nick = document.getElementById('nickInput').value.trim();
+        if(!nick) return alert("닉네임을 입력해주세요!");
+        const uid = (user && user.uid) ? user.uid : 'user_' + Math.random().toString(36).substr(2, 9);
+        user = { uid, nick, emoji: chosenEmoji }; 
+        localStorage.setItem('futsal_user', JSON.stringify(user));
+        document.getElementById('profileOverlay').style.display = 'none'; 
+        document.getElementById('mainApp').style.display = 'flex';
+        updateUI();
+    }
+
+    function initEmojiPicker() {
+        const picker = document.getElementById('emojiPicker');
+        if(!picker) return;
+        picker.innerHTML = '';
+        emojis.forEach(e => {
+            const span = document.createElement('div');
+            span.className = `emoji-item ${e === chosenEmoji ? 'selected' : ''}`;
+            span.innerText = e;
+            span.onclick = () => {
+                document.querySelectorAll('.emoji-item').forEach(el => el.classList.remove('selected'));
+                span.classList.add('selected');
+                chosenEmoji = e;
+            };
+            picker.appendChild(span);
+        });
+    }
+
+    async function fetchWeather() {
+        const API_KEY = "5403e0b2d279b271aec846d66c8b9532";
+        const lat = 37.5665; const lon = 126.9780;
+        try {
+            const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=kr`);
+            const data = await response.json();
+            document.getElementById('currentTemp').innerText = Math.round(data.main.temp) + "°";
+            document.getElementById('weatherDesc').innerText = data.weather[0].description;
+            const iconCode = data.weather[0].icon;
+            document.getElementById('weatherIcon').innerHTML = `<img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" width="60">`;
+        } catch (e) { document.getElementById('currentTemp').innerText = "??°"; }
+    }
+
+    function switchView(viewName) {
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewName + 'View').classList.add('active');
+        document.getElementById('sideMenu').style.display = 'none';
+        if(viewName === 'todo') { renderCalendar(); loadTrainings(); }
+        if(viewName === 'feed') loadGlobalFeed();
+        if(viewName === 'home') updateUI();
+        if(viewName === 'rank') calculateRanks();
+    }
+
+    function updateUI() {
+        if(!user) return;
+        document.getElementById('myNick').innerText = user.nick;
+        document.getElementById('myEmoji').innerText = user.emoji;
+        document.getElementById('todayDate').innerText = new Date().toLocaleDateString('ko-KR', {year:'numeric', month:'long', day:'numeric', weekday:'short'});
+        fetchWeather();
+        loadUpcomingTodos();
+        loadHomeFeed();
+    }
+
+    function pushTraining() {
+        const input = document.getElementById('trainInput');
+        if(!input.value) return;
+        db.ref(`trainings/${selectedDate}`).push({ uid: user.uid, nick: user.nick, emoji: user.emoji, text: input.value, score: 0, timestamp: Date.now() });
+        input.value = '';
+    }
+
+    function loadTrainings() {
+        db.ref(`trainings/${selectedDate}`).on('value', (snapshot) => {
+            const container = document.getElementById('trainingContainer');
+            container.innerHTML = '';
+            snapshot.forEach((child) => {
+                const data = child.val();
+                if(data.uid === user.uid) renderCard(container, data, child.key, true, selectedDate);
+            });
+        });
+    }
+
+    function loadUpcomingTodos() {
+        const container = document.getElementById('todoPreviewContainer');
+        const todayStr = new Date().toISOString().split('T')[0];
+        db.ref('trainings').orderByKey().startAt(todayStr).limitToFirst(5).on('value', (snapshot) => {
+            container.innerHTML = '';
+            snapshot.forEach(dateNode => {
+                dateNode.forEach(trainNode => {
+                    const data = trainNode.val();
+                    if(data.uid === user.uid) {
+                        const item = document.createElement('div');
+                        item.className = 'todo-item-card';
+                        item.onclick = () => { selectedDate = dateNode.key; switchView('todo'); };
+                        item.innerHTML = `<div><div style="font-size:11px;color:#a18cd1;font-weight:bold;">${dateNode.key}</div><div style="font-weight:600;">${data.text}</div></div><span>❯</span>`;
+                        container.appendChild(item);
+                    }
+                });
+            });
+        });
+    }
+
+    function loadGlobalFeed() {
+        db.ref('trainings').on('value', (snapshot) => {
+            const container = document.getElementById('feedContainer');
+            container.innerHTML = '';
+            snapshot.forEach(dateNode => {
+                dateNode.forEach(trainNode => {
+                    const data = trainNode.val();
+                    if(data.uid !== user.uid) renderCard(container, data, trainNode.key, false, dateNode.key);
+                });
+            });
+        });
+    }
+
+    function renderCard(container, data, key, isMine, dateKey) {
+        const card = document.createElement('div');
+        card.className = 'train-card';
+        const checkMine = (data.uid === user.uid);
+        card.innerHTML = `<div style="display:flex; justify-content:space-between;"><div><span style="font-size:0.8rem; color:#888;">${data.nick} ${data.emoji}</span><br><strong>${data.text}</strong></div>${checkMine ? `<div style="display:flex; gap:10px;"><button onclick="editPost('${dateKey}','${key}','${data.text}')" style="border:none;background:none;color:#a18cd1;font-size:12px;font-weight:bold;">수정</button><button onclick="deletePost('${dateKey}','${key}')" style="border:none;background:none;color:red;font-size:12px;font-weight:bold;">삭제</button></div>` : ''}</div><div class="dot-container">${[1,2,3,4,5].map(i => `<div class="dot ${data.score >= i ? 'active' : ''}" onclick="${checkMine ? `updateScore('${dateKey}','${key}',${i})` : ''}"></div>`).join('')}</div><div class="comment-section"><div id="comments-${key}"></div><div style="display:flex; gap:5px; margin-top:10px;"><input type="text" id="c-input-${key}" onkeypress="if(event.keyCode==13) addComment('${key}')" placeholder="응원..." style="flex:1; padding:8px; border:1px solid #eee; border-radius:8px;"><button onclick="addComment('${key}')" style="background:#a18cd1; color:white; border:none; border-radius:8px; cursor:pointer;">💬</button></div></div>`;
+        container.prepend(card);
+        loadComments(key);
+    }
+
+    function loadComments(tK) {
+        db.ref(`comments/${tK}`).on('value', (snapshot) => {
+            const box = document.getElementById(`comments-${tK}`);
+            if(!box) return; box.innerHTML = '';
+            snapshot.forEach(c => {
+                const d = c.val();
+                const item = document.createElement('div');
+                item.className = 'comment-item';
+                item.innerHTML = `<span style="font-size:13px;"><b>${d.nick}</b> ${d.text}</span>${d.nick === user.nick ? `<div style="display:flex; gap:6px;"><span onclick="editComment('${tK}','${c.key}','${d.text}')" style="font-size:10px; color:#a18cd1; cursor:pointer;">수정</span><span onclick="deleteComment('${tK}','${c.key}')" style="font-size:10px; color:red; cursor:pointer;">삭제</span></div>` : ''}`;
+                box.appendChild(item);
+            });
+        });
+    }
+
+    function addComment(tK) { const input = document.getElementById(`c-input-${tK}`); if(!input.value) return; db.ref(`comments/${tK}`).push({ nick: user.nick, text: input.value }); input.value = ''; }
+    function editComment(tK, cK, oldText) { const nt = prompt("댓글 수정:", oldText); if(nt && nt !== oldText) db.ref(`comments/${tK}/${cK}`).update({ text: nt }); }
+    function deleteComment(tK, cK) { if(confirm("댓글 삭제?")) db.ref(`comments/${tK}/${cK}`).remove(); }
+
+    async function calculateRanks() {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        let planCounts = {}, scoreCounts = {}, commentCounts = {}, userEmojiMap = {};
+        const trainSnap = await db.ref('trainings').once('value');
+        trainSnap.forEach(dateNode => {
+            dateNode.forEach(trainNode => {
+                const d = trainNode.val();
+                userEmojiMap[d.nick] = d.emoji;
+                if (dateNode.key.startsWith(currentMonth)) {
+                    planCounts[d.nick] = (planCounts[d.nick] || 0) + 1;
+                    scoreCounts[d.nick] = (scoreCounts[d.nick] || 0) + (d.score || 0);
+                }
+            });
+        });
+        const commentSnap = await db.ref('comments').once('value');
+        commentSnap.forEach(postNode => { postNode.forEach(commentNode => { const c = commentNode.val(); commentCounts[c.nick] = (commentCounts[c.nick] || 0) + 1; }); });
+        renderRankList('planRankList', planCounts, '회', userEmojiMap);
+        renderRankList('scoreRankList', scoreCounts, '점', userEmojiMap);
+        renderRankList('commentRankList', commentCounts, '개', userEmojiMap);
+    }
+
+    function renderRankList(elementId, dataObj, unit, emojiMap) {
+        const container = document.getElementById(elementId);
+        const sorted = Object.entries(dataObj).map(([nick, val]) => ({ nick, val, emoji: emojiMap[nick] || '👤' })).sort((a, b) => b.val - a.val).slice(0, 3);
+        if(sorted.length === 0) { container.innerHTML = '<div style="font-size:12px; color:#aaa; text-align:center;">데이터 없음</div>'; return; }
+        container.innerHTML = sorted.map((item, idx) => `<div class="rank-item"><div class="rank-badge">${idx + 1}</div><div class="rank-info">${item.emoji} ${item.nick}</div><div class="rank-score">${item.val}${unit}</div></div>`).join('');
+    }
+
+    function loadHomeFeed() {
+        const container = document.getElementById('homeFeedContainer');
+        db.ref('trainings').limitToLast(10).on('value', (snapshot) => {
+            container.innerHTML = ''; let count = 0;
+            snapshot.forEach(dateNode => {
+                dateNode.forEach(trainNode => {
+                    const data = trainNode.val();
+                    if(data.uid !== user.uid && count < 3) {
+                        const item = document.createElement('div');
+                        item.className = 'mini-feed-card';
+                        item.innerHTML = `<span style="font-size:20px;">${data.emoji}</span><div><div style="font-size:11px; color:#888;">${data.nick}</div><div style="font-size:13px; font-weight:600;">${data.text}</div></div>`;
+                        container.prepend(item); count++;
+                    }
+                });
+            });
+        });
+    }
+
+    function toggleMenu() { const menu = document.getElementById('sideMenu'); menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex'; }
+    function openProfileEdit() { document.getElementById('modalTitle').innerText = "⚙️ 프로필 수정"; document.getElementById('nickInput').value = user.nick; chosenEmoji = user.emoji; initEmojiPicker(); document.getElementById('profileOverlay').style.display = 'flex'; }
+    function renderCalendar() {
+        const grid = document.getElementById('calendarArea'); grid.innerHTML = '';
+        const start = new Date(); start.setDate(new Date().getDate() - new Date().getDay());
+        for(let i=0; i<7; i++) {
+            const d = new Date(start); d.setDate(start.getDate() + i);
+            const ds = d.toISOString().split('T')[0];
+            const box = document.createElement('div');
+            box.className = `day-box ${ds === selectedDate ? 'active' : ''}`;
+            box.innerHTML = `<small style="font-size:10px;">${['일','월','화','수','목','금','토'][i]}</small><br>${d.getDate()}`;
+            box.onclick = () => { selectedDate = ds; renderCalendar(); loadTrainings(); };
+            grid.appendChild(box);
+        }
+    }
+    function editPost(dK, tK, oldText) { const newText = prompt("수정하시겠습니까?", oldText); if(newText && newText !== oldText) db.ref(`trainings/${dK}/${tK}`).update({ text: newText }); }
+    function updateScore(dK, tK, s) { db.ref(`trainings/${dK}/${tK}`).update({ score: s }); }
+    function deletePost(dK, tK) { if(confirm("삭제?")) db.ref(`trainings/${dK}/${tK}`).remove(); }
+</script>
+</body>
+</html>
