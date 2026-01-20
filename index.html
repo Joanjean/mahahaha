@@ -96,7 +96,7 @@
 
 <div id="landingScreen">
     <div class="ball-container"><div class="rolling-ball">⚽️</div></div>
-    <div class="landing-text">JUST DO IT.<br>MAPO ROAFERS</div>
+    <div class="landing-text">JUST DO IT.<br>MAPO LOAFERS</div>
 </div>
 
 <div id="profileOverlay">
@@ -147,7 +147,7 @@
     </main>
 
     <main id="feedView" class="view-section">
-        <div class="header-card" style="padding: 20px;"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:bold;">👀 친구들 엿보기</span><span onclick="switchView('home')" style="cursor:pointer; background:rgba(255,255,255,0.3); padding:6px 14px; border-radius:20px; font-size:13px;">🏠</span></div></div>
+        <div class="header-card" style="padding: 20px;"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:bold;">👀 친구들 잘하고 있나?</span><span onclick="switchView('home')" style="cursor:pointer; background:rgba(255,255,255,0.3); padding:6px 14px; border-radius:20px; font-size:13px;">🏠</span></div></div>
         <div id="feedContainer" class="content-padding"></div>
     </main>
 
@@ -415,4 +415,5 @@
     function deletePost(dK, tK) { if(confirm("삭제?")) db.ref(`trainings/${dK}/${tK}`).remove(); }
 </script>
 </body>
+
 </html>
